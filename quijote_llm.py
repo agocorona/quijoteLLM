@@ -46,7 +46,7 @@ class CharTransformer(nn.Module):
 # Training
 def train_model():
     # Load text
-    with open('quijote.txt', 'r', encoding='utf-8') as f:
+    with open('quijoteLLM/quijote.txt', 'r', encoding='utf-8') as f:
         text = f.read()
     
     # Create dataset
@@ -59,7 +59,7 @@ def train_model():
     criterion = nn.CrossEntropyLoss()
     
     # Checkpointing
-    checkpoint_path = 'checkpoint.pth'
+    checkpoint_path = '/home/quijoteLLM/checkpoint.pth'
     start_epoch = 0
     
     # Load checkpoint if exists
@@ -120,9 +120,10 @@ def generate_text(model, dataset, start_text, length=100, temperature=0.8):
             
     return ''.join([dataset.idx2char[i] for i in chars])
 
-def infer_model():
+def infer_model(start_text, length=200, temperature=0.8):
+    """Generate text from a given starting text"""
     # Load text and dataset
-    with open('quijote.txt', 'r', encoding='utf-8') as f:
+    with open('quijoteLLM/quijote.txt', 'r', encoding='utf-8') as f:
         text = f.read()
     dataset = CharDataset(text)
     
@@ -130,12 +131,35 @@ def infer_model():
     model = CharTransformer(vocab_size=len(dataset.char2idx))
     model.load_state_dict(torch.load('quijote_transformer.pth'))
     
-    # Generate sample text
-    start_text = "En un lugar de la Mancha"
-    generated = generate_text(model, dataset, start_text, length=200)
-    print("\nGenerated Text:")
-    print(generated)
+    # Generate text
+    generated = generate_text(model, dataset, start_text, length, temperature)
+    return generated
+
+def run_inference_examples():
+    """Run multiple inference examples from the training text"""
+    # Load text
+    with open('quijoteLLM/quijote.txt', 'r', encoding='utf-8') as f:
+        text = f.read()
+    
+    # Select random starting points from the text
+    example_starts = [
+        "En un lugar de la Mancha",
+        "Don Quijote de la Mancha",
+        "La razón de la sinrazón",
+        "En esto descubrieron treinta o cuarenta molinos",
+        "Dichosa edad y siglos dichosos"
+    ]
+    
+    print("\nRunning Inference Examples:")
+    print("=" * 50)
+    for i, start_text in enumerate(example_starts):
+        print(f"\nExample {i+1}:")
+        print(f"Starting text: {start_text}")
+        generated = infer_model(start_text)
+        print("\nGenerated continuation:")
+        print(generated)
+        print("-" * 50)
 
 if __name__ == '__main__':
-    # train_model()
-    infer_model()
+    train_model()
+    run_inference_examples()
