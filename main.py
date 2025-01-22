@@ -2,6 +2,7 @@ import os
 from training import train_model
 from inference import inference_repl
 
+# Main menu display function
 def print_menu():
     print("\nQuijote LLM - Main Menu")
     print("=" * 30)
@@ -11,6 +12,7 @@ def print_menu():
     print("4. Exit")
     print("=" * 30)
 
+# Get valid text file path from user input
 def get_text_file():
     while True:
         text_file = input("Enter path to text file: ")
@@ -18,6 +20,7 @@ def get_text_file():
             return text_file
         print(f"File not found: {text_file}")
 
+# Get valid model file path from user input with optional default
 def get_model_file(prompt="Enter model path (leave blank for default): "):
     while True:
         model_path = input(prompt).strip()
@@ -27,6 +30,7 @@ def get_model_file(prompt="Enter model path (leave blank for default): "):
             return model_path
         print(f"Model file not found: {model_path}")
 
+# Main program loop handling user menu choices
 def main():
     while True:
         print_menu()
@@ -50,9 +54,8 @@ def main():
         elif choice == '3':
             print("\nRun Inference")
             print("=" * 30)
-            text_file = get_text_file()
             model_path = get_model_file()
-            inference_repl(text_file, model_path)
+            inference_repl(model_path)
             
         elif choice == '4':
             print("Exiting...")
@@ -61,5 +64,6 @@ def main():
         else:
             print("Invalid choice. Please select 1-4.")
 
+# Program entry point
 if __name__ == '__main__':
     main()

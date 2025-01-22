@@ -1,36 +1,56 @@
 import torch
-import torch.nn.functional as F
-from model import CharDataset, CharTransformer
+from training import BPETokenizer
+from model import TransformerModel
 
-def load_model_and_dataset(text_file, model_path):
-    """Load model and create dataset from text file"""
-    with open(text_file, 'r', encoding='utf-8') as f:
-        text = f.read()
-    
-    dataset = CharDataset(text)
-    model = CharTransformer(vocab_size=len(dataset.char2idx))
-    model.load_state_dict(torch.load(model_path))
-    return model, dataset
+# Initialize or load a transformer model
+# Args:
+#   vocab_size: Size of vocabulary for token embeddings
+#   model_path: Optional path to load existing model weights
+def load_model(vocab_size, model_path=None):
+    """Initialize or load existing model"""
+    model = TransformerModel(
+        vocab_size=vocab_size,
+        n_embd=512,
+        n_head=8,
+        n_layer=6,
+        block_size=128
+    )
+    if model_path and os.path.exists(model_path):
+        model.load_state_dict(torch.load(model_path))
+    return model
 
-def generate_text(model, dataset, start_text, length=100, temperature=0.8):
+# Generate text using the model with given starting text
+# Args:
+#   model: Transformer model instance
+#   tokenizer: Tokenizer for text encoding/decoding
+#   start_text: Initial text to start generation from
+#   length: Number of tokens to generate
+#   temperature: Sampling temperature (higher = more random)
+def generate_text(model, tokenizer, start_text, length=100, temperature=0.8):
     """Generate text from a given starting text"""
     model.eval()
-    chars = [dataset.char2idx[ch] for ch in start_text]
-    x = torch.tensor(chars).unsqueeze(0)
+    tokens = tokenizer.encode(start_text)
+    x = torch.tensor(tokens).unsqueeze(0)
     
     for _ in range(length):
         with torch.no_grad():
             output = model(x)
-            probs = F.softmax(output[:, -1] / temperature, dim=-1)
-            next_char = torch.multinomial(probs, 1).item()
-            chars.append(next_char)
-            x = torch.tensor(chars[-50:]).unsqueeze(0)
+            probs = torch.softmax(output[:, -1] / temperature, dim=-1)
+            next_token = torch.multinomial(probs, 1).item()
+            tokens.append(next_token)
+            x = torch.tensor(tokens[-128:]).unsqueeze(0)
             
-    return ''.join([dataset.idx2char[i] for i in chars])
+    return tokenizer.decode(tokens)
 
-def inference_repl(text_file, model_path):
+# Run interactive inference REPL (Read-Eval-Print Loop)
+# Args:
+#   model_path: Path to saved model weights
+def inference_repl(model_path):
     """Run interactive inference REPL"""
-    model, dataset = load_model_and_dataset(text_file, model_path)
+    # Load model and tokenizer
+    model = load_model(5000)  # Default vocab size
+    model.load_state_dict(torch.load(model_path))
+    tokenizer = torch.load(f"{model_path}.tokenizer")
     
     print("\nInteractive Inference Mode")
     print("Type 'quit' to exit")
@@ -44,7 +64,7 @@ def inference_repl(text_file, model_path):
         length = int(input("Enter length (50-500): "))
         temperature = float(input("Enter temperature (0.1-1.5): "))
         
-        generated = generate_text(model, dataset, start_text, length, temperature)
+        generated = generate_text(model, tokenizer, start_text, length, temperature)
         print("\nGenerated text:")
         print(generated)
         print("=" * 50)
