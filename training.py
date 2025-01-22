@@ -96,59 +96,33 @@ class BPETokenizer:
     # Returns: Decoded text string
     def decode(self, tokens):
         # Convert tokens to text using vocab
-        byte_tokens = []
+        text_chars = []
         for token in tokens:
-            if isinstance(token, int):
-                if token in self.vocab:
-                    # Convert vocab entry to bytes
-                    vocab_entry = self.vocab[token]
-                    if isinstance(vocab_entry, int):
-                        # Handle single byte tokens
-                        try:
-                            byte_tokens.append(bytes([vocab_entry]))
-                        except:
-                            byte_tokens.append(b' ')
-                    elif isinstance(vocab_entry, bytes):
-                        # Handle multi-byte tokens
-                        try:
-                            # Validate UTF-8 sequence
-                            vocab_entry.decode('utf-8')
-                            byte_tokens.append(vocab_entry)
-                        except UnicodeError:
-                            # Replace invalid sequences
-                            byte_tokens.append(b' ')
-                    else:
-                        # Handle string tokens
-                        try:
-                            byte_tokens.append(vocab_entry.encode('utf-8'))
-                        except:
-                            byte_tokens.append(b' ')
-                else:
-                    # Handle unknown tokens as space
-                    byte_tokens.append(b' ')
-            elif isinstance(token, bytes):
-                # Validate existing byte sequences
-                try:
-                    token.decode('utf-8')
-                    byte_tokens.append(token)
-                except UnicodeError:
-                    byte_tokens.append(b' ')
-            else:
-                # Convert other types to bytes
-                try:
-                    byte_tokens.append(bytes([token]))
-                except:
-                    byte_tokens.append(b' ')
+            if not isinstance(token, int):
+                token = int(token)
+            
+            if token in self.vocab:
+                vocab_entry = self.vocab[token]
+                if isinstance(vocab_entry, bytes):
+                    try:
+                        text_chars.append(vocab_entry.decode('utf-8'))
+                        continue
+                    except UnicodeError:
+                        pass
+                elif isinstance(vocab_entry, str):
+                    text_chars.append(vocab_entry)
+                    continue
+                elif isinstance(vocab_entry, int):
+                    try:
+                        text_chars.append(chr(vocab_entry))
+                        continue
+                    except ValueError:
+                        pass
+            
+            # Fallback for unknown/invalid tokens
+            text_chars.append(' ')
         
-        # Join all valid bytes and decode
-        try:
-            text = b''.join(byte_tokens).decode('utf-8', errors='replace')
-            # Clean up any remaining invalid characters
-            text = text.encode('utf-8', errors='replace').decode('utf-8')
-            return text
-        except Exception as e:
-            print(f"Decoding error: {str(e)}")
-            return ""
+        return ''.join(text_chars)
     
     def get_stats(self, vocab):
         pairs = Counter()
