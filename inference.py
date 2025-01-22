@@ -1,3 +1,4 @@
+import os
 import torch
 from training import BPETokenizer
 from model import TransformerModel
@@ -45,10 +46,12 @@ def generate_text(model, tokenizer, start_text, length=100, temperature=0.8):
 # Run interactive inference REPL (Read-Eval-Print Loop)
 # Args:
 #   model_path: Path to saved model weights
-def inference_repl(model_path):
+def inference_repl(text_file, model_path=None):
     """Run interactive inference REPL"""
     # Load model and tokenizer
     model = load_model(5000)  # Default vocab size
+    if not model_path:
+        model_path = os.path.splitext(text_file)[0] + "_transformer.pth"
     model.load_state_dict(torch.load(model_path))
     tokenizer = torch.load(f"{model_path}.tokenizer")
     

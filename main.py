@@ -25,7 +25,7 @@ def get_model_file(prompt="Enter model path (leave blank for default): "):
     while True:
         model_path = input(prompt).strip()
         if not model_path:
-            return 'quijote_transformer.pth'
+            return None  # Will use auto-generated name from training.py
         if os.path.exists(model_path):
             return model_path
         print(f"Model file not found: {model_path}")
@@ -41,7 +41,7 @@ def main():
             print("=" * 30)
             text_file = get_text_file()
             model_path = input("Enter output model path (leave blank for default): ").strip()
-            model_path = model_path or 'quijote_transformer.pth'
+            model_path = model_path or None  # Will use auto-generated name
             train_model(text_file, model_path)
             
         elif choice == '2':
@@ -54,8 +54,9 @@ def main():
         elif choice == '3':
             print("\nRun Inference")
             print("=" * 30)
+            text_file = get_text_file()
             model_path = get_model_file()
-            inference_repl(model_path)
+            inference_repl(text_file, model_path)
             
         elif choice == '4':
             print("Exiting...")

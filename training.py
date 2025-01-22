@@ -96,33 +96,28 @@ class BPETokenizer:
     # Returns: Decoded text string
     def decode(self, tokens):
         # Convert tokens to text using vocab
-        text_chars = []
+        text = []
         for token in tokens:
-            if not isinstance(token, int):
+            try:
                 token = int(token)
-            
-            if token in self.vocab:
-                vocab_entry = self.vocab[token]
-                if isinstance(vocab_entry, bytes):
-                    try:
-                        text_chars.append(vocab_entry.decode('utf-8'))
-                        continue
-                    except UnicodeError:
-                        pass
-                elif isinstance(vocab_entry, str):
-                    text_chars.append(vocab_entry)
-                    continue
-                elif isinstance(vocab_entry, int):
-                    try:
-                        text_chars.append(chr(vocab_entry))
-                        continue
-                    except ValueError:
-                        pass
-            
-            # Fallback for unknown/invalid tokens
-            text_chars.append(' ')
+                if token in self.vocab:
+                    # Get vocab entry and ensure it's a string
+                    entry = self.vocab[token]
+                    if isinstance(entry, bytes):
+                        text.append(entry.decode('utf-8'))
+                    elif isinstance(entry, str):
+                        text.append(entry)
+                    else:
+                        text.append(' ')
+                else:
+                    text.append(' ')
+            except (ValueError, TypeError):
+                text.append(' ')
         
-        return ''.join(text_chars)
+        # Join text and normalize Unicode
+        decoded = ''.join(text)
+        import unicodedata
+        return unicodedata.normalize('NFC', decoded)
     
     def get_stats(self, vocab):
         pairs = Counter()
@@ -239,9 +234,14 @@ def load_model(vocab_size, model_path=None):
 #   epochs: Number of training epochs
 #   batch_size: Training batch size
 #   seq_length: Sequence length for training
-def train_model(text_file, model_path='quijote_transformer.pth', 
+def train_model(text_file, model_path=None, 
                epochs=10, batch_size=64, seq_length=128):
     """Train model on given text file"""
+    # Set model path based on input file name if not provided
+    if model_path is None:
+        base_name = os.path.splitext(os.path.basename(text_file))[0]
+        model_path = os.path.join(os.path.dirname(text_file), f"{base_name}_transformer.pth")
+    
     # Initialize tokenizer
     tokenizer = BPETokenizer(vocab_size=5000)
     tokenizer.train(text_file)
@@ -280,6 +280,9 @@ def train_model(text_file, model_path='quijote_transformer.pth',
         print(f'Epoch {epoch+1} completed - Avg Loss: {total_loss/batch_count:.4f}', flush=True)
     
     # Save final model and tokenizer
+    if not model_path:
+        base_name = os.path.splitext(os.path.basename(text_file))[0]
+        model_path = os.path.join(os.path.dirname(text_file), f"{base_name}_transformer.pth")
     torch.save(model.state_dict(), model_path)
     torch.save(tokenizer, f"{model_path}.tokenizer")
     print(f'Model saved to {model_path}')
